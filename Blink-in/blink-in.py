@@ -24,7 +24,7 @@ def error_400():
     ban(ip)
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)), 200
 
-    
+
 # @app.errorhandler(404)
 # def kill_bot(e):
 #     expire_date = datetime.datetime.now()
@@ -86,6 +86,9 @@ def update_info():
 
     with open('./config/black_list.json', 'r')as black_list_data:
         black_list = json.load(black_list_data)
+
+    with open('./config/update.txt', 'r')as update_log:
+        update_log = update_log.read()
 
     timing = {}
     update_timer = time()
@@ -455,6 +458,35 @@ def cluster():
     return render_template('cluster.html')
 
 
+@app.route('/download_page')
+def download_page():
+    files = glob('./offline_apps/*.*')
+    files.sort(key=os.path.getctime)
+    data = ''
+    print(files)
+    for x in files:
+        data += '''<p>
+            <form action="/offline_apps_download" method="POST" enctype='multipart/form-data'>
+                <p>%s</p>
+                <input type="hidden" name=download_offline_app value="%s">
+                <input type="submit" value="下载">
+            </form>
+            </p>
+            <br>
+            ''' % (os.path.basename(x).split('.')[0], os.path.basename(x))
+    return offline_tool1+data+offline_tool2
+
+
+@app.route('/offline_apps_download', methods=["POST"])
+def offline_apps_download():
+    target = request.form.get('download_offline_app')
+    return send_file('./offline_apps/%s' % target, as_attachment=True)
+
+
+@app.route('/update')
+def update():
+    return doc_page1+update_log+doc_page2
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=443, ssl_context=(
-        r'C:\Certbot\live\blink-in.ml\cert.pem', r'C:\Certbot\live\blink-in.ml\privkey.pem'))
+    app.run(host='0.0.0.0', port=80)

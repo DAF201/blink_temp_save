@@ -256,3 +256,37 @@ control_panel2 = '''
 
 </html>
 '''
+doc_page1 = '''
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>更新日志</title>
+</head>
+
+<body>
+    <article style="font-size: x-large;text-align: center;">
+'''
+doc_page2 = '''
+    </article>
+</body>
+
+</html>
+'''
+offline_tool1 = '''
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        离线工具下载
+    </title>
+</head>
+
+<body>
+'''
+offline_tool2 = '''
+</body>
+
+</html>
+'''
