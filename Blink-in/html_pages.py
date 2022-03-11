@@ -45,21 +45,18 @@ blink_result_page_1 = '''
 </style>
 
 <head>
-    <title>Blink-in 输出页</title>
+    <title>Blink-in output page</title>
 </head>
 
 <body>
-    <h1>输出</h1>
+    <h1>result</h1>
     <textarea id='result'>
 '''
 
 blink_result_page_2 = '''
 </textarea>
     <button onclick='copy()'>copy</button>
-    <br>
-    <br>
-    <br>
-    <h2>上传失败:'''
+    <h2>fail:'''
 
 blink_result_page_3 = '''</h2>
 </body>
@@ -102,7 +99,7 @@ blink_image_result_page_1 = '''
     }
 </style>
 <body>
-<a class='disable-select' href='/'>返回首页</a>
+<a class='disable-select' href='/'>back to home</a>
 <div>
 '''
 
@@ -132,55 +129,55 @@ control_panel1 = '''
 </style>
 
 <head>
-    <title>控制面板</title>
+    <title>control panel</title>
 </head>
 
 <body>
     <div class='left'>
-        <h1>一般文件下载</h1>
-        <h2>管理员添加记录</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h1>general log download</h1>
+        <h2>admin adding log</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='admin'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='downlaod'>
         </form>
         <br>
-        <h2>封禁记录</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h2>ban log</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='ban'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='download'>
         </form>
         <br>
-        <h2>操作记录</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h2>general log</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='general'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='download'>
         </form>
         <br>
-        <h2>封面1</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h2>cover1</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='cover1'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='download'>
         </form>
         <br>
-        <h2>封面2</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h2>cover2</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='cover2'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='download'>
         </form>
         <br>
-        <h2>图标</h2>
-        <form action='/log_download' method='POST' enctype='multipart/form-data'>
+        <h2>icon</h2>
+        <form action='/login/log_download' method='POST' enctype='multipart/form-data'>
             <input type='hidden' name='log' value='icon'>
-            <input type='submit' value='下载'>
+            <input type='submit' value='download'>
         </form>
     </div>
     <div class='middle'>
-        <h1>修改配置</h1>
-        <h2>当前配置</h2>
+        <h1>change config</h1>
+        <h2>current config</h2>
 '''
 
 control_panel2 = '''
-        <h2>修改</h2>
+        <h2>change</h2>
         <form action='/login/change_config' method='POST' enctype='multipart/form-data'>
             <p>csrf</p>
             <input type='hidden' name='config_type' value='csrf'>
@@ -195,51 +192,51 @@ control_panel2 = '''
         </form>
         <h2>For logging part, enter true or false</h2>
         <form action='/login/change_config' method='POST' enctype='multipart/form-data'>
-            <p>启用一般记录</p>
+            <p>enable general log</p>
             <input type='hidden' name='config_type' value='general_log'>
             <input type='text' name='config_value'>
             <input type='submit' onclick='send()'>
         </form>
         <form action='/login/change_config' method='POST' enctype='multipart/form-data'>
-            <p>启用封禁记录</p>
+            <p>enable ban log</p>
             <input type='hidden' name='config_type' value='ban_log'>
             <input type='text' name='config_value'>
             <input type='submit' onclick='send()'>
         </form>
         <form action='/login/change_config' method='POST' enctype='multipart/form-data'>
-            <p>启用管理员记录</p>
+            <p>enable admin log</p>
             <input type='hidden' name='config_type' value='admin_log'>
             <input type='text' name='config_value'>
             <input type='submit' onclick='send()'>
         </form>
     </div>
     <div class='right'>
-        <h1>更新服务器文件</h1>
-        <p>封面1</p>
+        <h1>update server file</h1>
+        <p>cover1</p>
         <form action='/login/server_update' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='server_config' value='cover1'>
             <input type='file' name='file' accept='.jpeg,.png'>
             <input type='submit' onclick='send()'>
         </form>
-        <p>封面2</p>
+        <p>cover2</p>
         <form action='/login/server_update' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='server_config' value='cover2'>
             <input type='file' name='file' accept='.jpeg,.png'>
             <input type='submit' onclick='send()'>
         </form>
-        <p>图标</p>
+        <p>icon</p>
         <form action='/login/server_update' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='server_config' value='icon'>
             <input type='file' name='file' accept='.ico'>
             <input type='submit' onclick='send()'>
         </form>
-        <p>封禁ip</p>
+        <p>ban ip</p>
         <form action='/login/server_update' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='server_config' value='ban'>
             <input type='text' name=ip>
             <input type='submit' onclick='send()'>
         </form>
-        <p>解封ip</p>
+        <p>unban ip</p>
         <form action='/login/server_update' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='server_config' value='unban'>
             <input type='text' name=ip>
@@ -253,40 +250,6 @@ control_panel2 = '''
         window.location.reload();
     }
 </script>
-
-</html>
-'''
-doc_page1 = '''
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>更新日志</title>
-</head>
-
-<body>
-    <article style="font-size: x-large;text-align: center;">
-'''
-doc_page2 = '''
-    </article>
-</body>
-
-</html>
-'''
-offline_tool1 = '''
-<!DOCTYPE html>
-<html>
-
-<head>
-    <title>
-        离线工具下载
-    </title>
-</head>
-
-<body>
-'''
-offline_tool2 = '''
-</body>
 
 </html>
 '''

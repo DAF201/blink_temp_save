@@ -71,23 +71,23 @@ minimum-scale=1,maximum-scale=1,user-scalable=no' />
 </head>
 
 <body class="disable-select">
-    <h1>欢迎使用blink</h1>
+    <h1>Welcome</h1>
     <details>
-        <summary>这是什么？</summary>
+        <summary>what is this?</summary>
         blink-in -> be linked in<br>
-        英文谐音梗？*<br>
-        将图片转为链接以分享，上限20mb
+        not funny joke I guess, so what is it?<br>
+        this is a file share server to convert image into link(max 20 mb per image, videos and files are still in progress)
     </details>
     <div class="flex_box mid_box">
         <div>
-            <h2>图片上传</h2>
+            <h2>image upload</h2>
             <form id='image_upload' action='/blink/blink_image_in' method='post' enctype='multipart/form-data'>
                 <input type='file' id='image' name='image' accept='.jpeg,.png' multiple onchange="checkFiles(this.files)">
                 <br>
                 <input type='submit' value='submit'>
             </form>
             <br>
-            <h2>图片下载</h2>
+            <h2>image download</h2>
             <form action='/blink/blink_image_out' method='POST'>
                 <textarea name='text' cols='40' rows='5'></textarea>
                 <input type='submit'>
@@ -108,12 +108,12 @@ minimum-scale=1,maximum-scale=1,user-scalable=no' />
         </div>
     </div>
 
-    <a href="/" style="text-decoration: none;">返回首页</a>
+    <a href="/" style="text-decoration: none;">back to homepage</a>
 </body>
 <script>
     function checkFiles(files) {       
     if(files.length>3) {
-        alert("单次上传上限3张");
+        alert("limit of 3 per upload, excessive part will be dropped");
 
         let list = new DataTransfer;
         for(let i=0; i<3; i++)

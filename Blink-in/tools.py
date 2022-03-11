@@ -5,7 +5,8 @@ from PIL import Image
 import numpy
 import requests
 from config import *
-
+import random
+import string
 temp = './temporary/'
 cover = './static/cover.gif'
 
@@ -25,7 +26,9 @@ def clear_output():
     except:
         pass
 
-
+def random_gen():
+    return ''.join(random.choice(
+            string.ascii_uppercase + string.digits) for _ in range(16))
 def factors(num):
     def is_prime(x):
         if (x == 2) or (x == 3):

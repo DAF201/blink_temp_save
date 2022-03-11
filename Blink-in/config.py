@@ -6,7 +6,7 @@ header = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'zh-CN,zh;q=0.8'
 }
-with open('./config/config.json', 'r')as config:
+with open('./config/config.json','r')as config:
     config = json.load(config)
     param = config['param']
     cookie = config['cookie']
@@ -17,9 +17,5 @@ with open('./config/config.json', 'r')as config:
     first_cover = config['first_cover']
     second_cover = config['second_cover']
     icon = config['icon']
-
-with open('./config/update.txt', 'r')as update_log:
-    update_log = update_log.read()
-    update_log = update_log.replace('\n', '<br>')
 
 data_base = 'https://api.bilibili.com/x/dynamic/feed/draw/upload_bfs'

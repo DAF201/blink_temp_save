@@ -1,7 +1,7 @@
 from tools import *
 from config import *
 from html_pages import *
-from flask import Flask, request, make_response, render_template, send_file, send_from_directory, redirect
+from flask import Flask, request, make_response, render_template, send_file, send_from_directory, redirect, abort
 from base64 import b64encode, b64decode
 from time import time, ctime
 from PIL import Image
@@ -12,6 +12,8 @@ import random
 import string
 import datetime
 
+# ssh -i Blink-linux.pem ec2-user@ec2-54-147-40-111.compute-1.amazonaws.com
+
 app = Flask(__name__, static_folder='./static',
             template_folder='./templates')
 app.config['TRAP_HTTP_EXCEPTIONS'] = True
@@ -19,47 +21,19 @@ app.config['MAX_CONTENT_LENGTH'] = 1000 * 1000 * 20
 
 
 @app.errorhandler(400)
-def error_400():
+def anti_script():
     ip = request.environ.get('REMOTE_ADDR')
     ban(ip)
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)), 200
 
 
-# @app.errorhandler(404)
-# def kill_bot(e):
-#     expire_date = datetime.datetime.now()
-#     expire_date = expire_date + datetime.timedelta(days=90)
-#     if (request.cookies.get('admin') == None) or (request.cookies.get('admin')not in admin_cookie):
-#         ip = request.environ.get('REMOTE_ADDR')
-#         ban(ip)
-#         ban_response = make_response(render_template('ban.html'))
-#         ban_response.set_cookie(''.join(random.choice(
-#             string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-#                 string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-#         return ban_response, 418
-#     else:
-#         return '未找到界面', 404
-
-
-# @app.errorhandler(405)
-# def login_killer(e):
-#     expire_date = datetime.datetime.now()
-#     expire_date = expire_date + datetime.timedelta(days=90)
-#     if (request.cookies.get('admin') == None) or (request.cookies.get('admin')not in admin_cookie):
-#         ip = request.environ.get('REMOTE_ADDR')
-#         ban(ip)
-#         ban_response = make_response(render_template('ban.html'))
-#         ban_response.set_cookie(''.join(random.choice(
-#             string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-#                 string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-#         return ban_response, 418
-#     else:
-#         return '方法错误', 405
+@app.errorhandler(403)
+def connectiom_abort(e):
+    return 'you have been ban for disruptive behaviors, contact admins if you have any objection', 403
 
 
 @app.errorhandler(413)
 def up_load_over_size_file(e):
-    return '最大尺寸20mb'
+    return 'max size 20 mb'
 
 
 @app.route('/favicon.ico')
@@ -67,11 +41,17 @@ def favicon():
     return send_from_directory('./static/', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
-with open('./config/admin_cookie.json')as admin_cookie_data:
+admin_cookie: list
+with open('./config/admin_cookie.json', 'r')as admin_cookie_data:
     admin_cookie = json.load(admin_cookie_data)
 
+black_list: list
 with open('./config/black_list.json', 'r')as black_list_data:
     black_list = json.load(black_list_data)
+
+ip_log: dict
+with open('./config/ip_log.json', 'r')as ip_log_data:
+    ip_log = json.load(ip_log_data)
 
 timing = {}
 update_timer = time()
@@ -79,7 +59,7 @@ update_timer = time()
 
 def update_info():
 
-    global admin_cookie, black_list, timing, update_timer
+    global admin_cookie, black_list, ip_log
 
     with open('./config/admin_cookie.json')as admin_cookie_data:
         admin_cookie = json.load(admin_cookie_data)
@@ -87,11 +67,8 @@ def update_info():
     with open('./config/black_list.json', 'r')as black_list_data:
         black_list = json.load(black_list_data)
 
-    with open('./config/update.txt', 'r')as update_log:
-        update_log = update_log.read()
-
-    timing = {}
-    update_timer = time()
+    with open('./config/ip_log.json', 'r')as ip_log_data:
+        ip_log = json.load(ip_log_data)
 
 
 def update_config():
@@ -109,6 +86,7 @@ def update_config():
         first_cover = config['first_cover']
         second_cover = config['second_cover']
         icon = config['icon']
+    print('config info updated @%s' % ctime(time()))
 
 
 def ban(ip, administrator='system'):
@@ -118,9 +96,10 @@ def ban(ip, administrator='system'):
         black_list.append(ip)
         with open('./config/black_list.json', 'w')as black_list_data:
             json.dump(black_list, black_list_data)
+            print('update blacklist @%s' % ctime(time()))
         if enable_ban_log:
             with open('./server_log/ban.txt', 'a')as ban_log:
-                ban_log.write(str(ip).ljust(20) + 'ban at @\t' +
+                ban_log.write(str(ip).ljust(20) + 'ban @\t' +
                               str(ctime(time()).ljust(20)) + ' by admin: ' + administrator + '\n')
 
 
@@ -131,98 +110,120 @@ def unban(ip, administrator):
         black_list.remove(ip)
         with open('./config/black_list.json', 'w')as black_list_data:
             json.dump(black_list, black_list_data)
+            print('update blacklist @%s' % ctime(time()))
         if enable_ban_log:
             with open('./server_log/ban.txt', 'a')as ban_log:
-                ban_log.write(str(ip).ljust(20) + 'unban at @\t' +
+                ban_log.write(str(ip).ljust(20) + 'unban @\t' +
                               str(ctime(time()).ljust(20)) + ' by admin: ' + administrator + '\n')
 
 
 @app.before_request
 def request_restrict():
 
-    if time() - update_timer > 30:
+    global timing, update_timer
+
+    if time() - update_timer > 60:
         update_info()
+        update_timer = time()
+        timing.clear()
 
+    head = request.headers.get('User-Agent')
     ip = request.environ.get('REMOTE_ADDR')
-    login_cookie = request.cookies.get('admin')
-    cookie_length = len(request.cookies.to_dict())
+    cookie_len = len(request.cookies.to_dict())
+    target = request.url
 
-    if (login_cookie != None) and (login_cookie in admin_cookie):
-        pass
+    if target != 'http://blink-in.duckdns.org/favicon.ico':
+        if ip in black_list:
+            abort(403)
+
+        if(ip not in timing.keys()):
+            timing[ip] = 1
+        else:
+            timing[ip] = timing[ip]+1
+
+        if(('Mozilla' not in head) and ('AppleWebKit' not in head)) or ('python' in head):
+            ban(ip)
+            abort(403)
+
+        if(ip not in ip_log.keys()):
+
+            expire_date = datetime.datetime.now() + datetime.timedelta(days=5*365)
+
+            new_cookie = random_gen()
+            ip_log[ip] = (new_cookie, head)
+            with open('./config/ip_log.json', 'w')as ip_log_data:
+                json.dump(ip_log, ip_log_data)
+            new_user_response = make_response(render_template('blink.html'))
+            new_user_response.set_cookie(
+                'blink-in', new_cookie, expires=expire_date)
+            return new_user_response
+
+        if(((ip in ip_log.keys() and cookie_len == 0) and timing[ip] > 5) and (target != 'http://blink-in.duckdns.org/transfer')):
+            ban(ip)
+            abort(403)
+
+        if(ip in ip_log.keys() and ((request.cookies.get('blink-in') != ip_log[ip][0]) or (head != ip_log[ip][1]))):
+            return redirect(r'https://www.youtube.com/'), 307
+
+        else:
+            pass
     else:
-        if (ip in black_list) or (cookie_length >= 1):
-            return render_template('ban.html'), 418
-
-        if ip not in timing.keys():
-            timing[ip] = 0
-        else:
-            if timing[ip] > 20:
-                ban(ip)
-                expire_date = datetime.datetime.now()
-                expire_date = expire_date + datetime.timedelta(days=90)
-                ban_response = make_response(render_template('ban.html'))
-                ban_response.set_cookie(''.join(random.choice(
-                    string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-                        string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-                return ban_response, 418
-            else:
-                timing[ip] = timing[ip] + 1
+        pass
 
 
-@app.route('/login', methods=['POST'])
+@ app.route('/login', methods=['POST', 'GET'])
 def admin_login():
-    if request.method == 'POST':
-        content = request.form['text']
-        login_cookie = request.cookies.get('admin')
-        if login_cookie in admin_cookie:
-            if enable_general_log:
-                with open('./server_log/general.txt', 'a')as general_log:
-                    general_log.write('admin: cookie@: ' + str(login_cookie) + ' ip: ' + str(request.environ.get('REMOTE_ADDR')).ljust(20) + '\tat @'+str(ctime(time())).ljust(20) +
-                                      '\tlogin in to control panel \n')
-            return control_panel1 + str(param) + '<br>' + str(cookie) + '<br>admin log: ' + str(enable_admin_log) + '<br>ban log: ' + str(enable_ban_log) + '<br>general log: ' + str(enable_general_log) + '<br>passcode: ' + str(passcode) + '<br>' + control_panel2
+
+    login_cookie = request.cookies.get('admin')
+    form_data = request.form.get('text')
+    expire_date = datetime.datetime.now() + datetime.timedelta(days=365*5)
+
+    if login_cookie in admin_cookie:
+        if enable_general_log:
+            with open('./server_log/general.txt', 'a')as general_log:
+                general_log.write('admin: cookie@: ' + str(login_cookie) + ' ip: ' + str(request.environ.get('REMOTE_ADDR')).ljust(20) + '\tat @'+str(ctime(time())).ljust(20) +
+                                  '\tlogin in to control panel \n')
+        return control_panel1 + str(param) + '<br>' + str(cookie) + '<br>admin log: ' + str(enable_admin_log) + '<br>ban log: ' + str(enable_ban_log) + '<br>general log: ' + str(enable_general_log) + '<br>passcode: ' + str(passcode) + '<br>' + control_panel2
+
+    else:
+        if form_data == passcode:
+
+            new_admin_cookie = random_gen()
+
+            if enable_admin_log:
+                with open('./server_log/admin.txt', 'a')as admin_log:
+                    admin_log.write('add new admin @%s @%s\n' %
+                                    (new_admin_cookie, ctime(time())))
+
+            admin_cookie.append(new_admin_cookie)
+            with open('./config/admin_cookie.json', 'w')as admin_cookie_data:
+                json.dump(admin_cookie, admin_cookie_data)
+
+            update_info()
+
+            new_admin = make_response(control_panel1 + str(param) + '<br>' + str(cookie) + '<br>admin log: ' + str(enable_admin_log) + '<br>ban log: ' + str(
+                enable_ban_log) + '<br>general log: ' + str(enable_general_log) + '<br>passcode: ' + str(passcode) + '<br>' + control_panel2)
+
+            new_admin.set_cookie(
+                'admin', new_admin_cookie, expires=expire_date)
+
+            return new_admin
+
         else:
-            if content == passcode:
-                expire_date = datetime.datetime.now()
-                expire_date = expire_date + datetime.timedelta(days=90)
-                new_cookie = ''.join(random.choice(
-                    string.ascii_uppercase + string.digits) for _ in range(16))
-                response = make_response(render_template('home.html'))
-                response.set_cookie('admin', new_cookie, expires=expire_date)
-                admin_cookie.append(new_cookie)
-                if enable_admin_log:
-                    with open('./server_log/admin.txt', 'a')as admin_log:
-                        admin_log.write('adding new admin at @ ' +
-                                        str(ctime(time())).ljust(20) + '\tip: ' + str(request.environ.get('REMOTE_ADDR')) + '\tcookie: ' + new_cookie.ljust(20) + '\n')
-                with open('./config/admin_cookie.json', 'w')as admin_cookie_data:
-                    json.dump(admin_cookie, admin_cookie_data)
-                return response
-        return render_template('ban.html')
-    # else:
-    #     ban_response = make_response(render_template('ban.html'))
-    #     ban_response.set_cookie(''.join(random.choice(
-    #         string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-    #             string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-    #     return ban_response, 418
+            return 'You don\'t have permission to this page', 401
 
 
-@app.route('/log_download', methods=['POST'])
+@ app.route('/login/log_download', methods=['POST'])
 def log_download():
     if (request.cookies.get('admin') == None) or (request.cookies.get('admin')not in admin_cookie):
-        expire_date = datetime.datetime.now()
-        expire_date = expire_date + datetime.timedelta(days=90)
-        ip = request.environ.get('REMOTE_ADDR')
-        ban(ip)
-        ban_response = make_response(render_template('ban.html'))
-        ban_response.set_cookie(''.join(random.choice(
-            string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-                string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-        return ban_response, 418
+        return 'You don\'t have permission to this page', 401
 
     log_type = request.form.get('log')
+
     if enable_general_log:
         with open('./server_log/general.txt', 'a')as general_log:
             general_log.write('admin cookie: ' + request.cookies.get('admin') +
-                              '\tdownloaded\t' + log_type + '\tat @' + str(ctime(time()).ljust(20)) + '\n')
+                              '\tdownloaded\t' + log_type + ' @' + str(ctime(time()).ljust(20)) + '\n')
 
     if log_type == 'admin':
         return send_file('./server_log/admin.txt', as_attachment=True)
@@ -237,22 +238,14 @@ def log_download():
     if log_type == 'icon':
         return send_file(icon, as_attachment=True)
 
-    return '无法识别log type'
+    return 'can not dientify log type', 404
 
 
 @app.route('/login/change_config', methods=['POST'])
 def change_config():
 
     if (request.cookies.get('admin') == None) or (request.cookies.get('admin')not in admin_cookie):
-        expire_date = datetime.datetime.now()
-        expire_date = expire_date + datetime.timedelta(days=90)
-        ip = request.environ.get('REMOTE_ADDR')
-        ban(ip)
-        ban_response = make_response(render_template('ban.html'))
-        ban_response.set_cookie(''.join(random.choice(
-            string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-                string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-        return ban_response, 418
+        return 'You don\'t have permission to this page', 401
 
     with open('./config/config.json', 'r')as config:
         config = json.load(config)
@@ -292,29 +285,22 @@ def change_config():
     if enable_general_log:
         with open('./server_log/general.txt', 'a')as general_log:
             general_log.write(
-                'admin cookie: ' + request.cookies.get('admin') + ' ip ' + str(request.environ.get('REMOTE_ADDR')).ljust(20) + ' changed ' + config_type + ' from: ' + str(old_config) + ' to: ' + config_value + 'at time@ ' + ctime(time()).ljust(20) + '\n')
+                'admin cookie: ' + request.cookies.get('admin') + ' changed ' + config_type + ' from: ' + str(old_config) + ' to: ' + config_value + ' @ ' + ctime(time()).ljust(20) + '\n')
 
     update_config()
 
-    return redirect('https://blink-in.ml/'), 302
+    return redirect('/login'), 302
 
 
 @app.route('/login/server_update', methods=['POST'])
 def server_update():
 
     if (request.cookies.get('admin') == None) or (request.cookies.get('admin')not in admin_cookie):
-        expire_date = datetime.datetime.now()
-        expire_date = expire_date + datetime.timedelta(days=90)
-        ip = request.environ.get('REMOTE_ADDR')
-        ban(ip)
-        ban_response = make_response(render_template('ban.html'))
-        ban_response.set_cookie(''.join(random.choice(
-            string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-                string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-        return ban_response, 418
+        return 'You don\'t have permission to this page', 401
 
     server_config_type = request.form.get('server_config')
     server_config_value = request.files.get('file')
+
     if server_config_type == 'cover1':
         server_config_value.save('./static/cover1.png')
     if server_config_type == 'cover2':
@@ -328,63 +314,78 @@ def server_update():
 
     update_config()
 
-    return redirect('https://blink-in.ml/'), 302
+    return redirect('/login'), 302
 
 
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    try:
+        ip = request.environ.get('REMOTE_ADDR')
+        ip_log.pop(ip)
+
+        with open('./config/ip_log.json', 'w')as ip_log_data:
+            json.dump(ip_log, ip_log_data)
+
+        update_info()
+
+        return redirect('https://www.youtube.com/'), 307
+
+    except Exception as e:
+        return str(e)
 #       above are server remote control
 #       below are functions
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
     return render_template('home.html')
 
 
-@app.route('/blink-in')
+@app.route('/blink-in', methods=['GET'])
 def blink_in():
     return render_template('blink.html')
 
 
 @app.route('/blink/blink_image_in', methods=['POST'])
 def blink_image_in():
+
     clear_temp()
     clear_output()
+    try:
+        fail_list = []
+        success_list = []
+        image_list = []
+        files = request.files.getlist('image')
 
-    fail_list = []
-    success_list = []
-    image_list = []
-    files = request.files.getlist('image')
+        if str(files) != '''[<FileStorage: '' ('application/octet-stream')>]''':
+            file_counter = 0
+            for file in files:
+                if file_counter < 3:
+                    file.save('./temporary/' + file.filename)
+                    image_list.append(file.filename)
+                    file_counter += 1
+                else:
+                    break
 
-    if str(files) != '''[<FileStorage: '' ('application/octet-stream')>]''':
-        for file in files:
-            # 防错误类型文件
-            # if file.filename.split('.')[1]not in ['png', 'jpeg']:
-            #     expire_date = datetime.datetime.now()
-            #     expire_date = expire_date + datetime.timedelta(days=90)
-            #     ban(request.environ.get('REMOTE_ADDR'))
-            #     ban_response = make_response(render_template('ban.html'))
-            #     ban_response.set_cookie(''.join(random.choice(
-            #         string.ascii_uppercase + string.digits) for _ in range(16)), ''.join(random.choice(
-            #             string.ascii_uppercase + string.digits) for _ in range(16)), expires=expire_date)
-            #     return ban_response, 418
+            for image in image_list:
+                blink_image_process(image)
 
-            file.save('./temporary/' + file.filename)
-            image_list.append(file.filename)
+            for file in glob('./output/*'):
+                response = json.loads(image_upload(file))
+                if response['code'] != 0:
+                    fail_list.append(file)
+                else:
+                    success_list.append(b64encode(response['data']['image_url'].split(
+                        'http://i0.hdslb.com/bfs/album/')[1].split('.png')[0].encode()).decode())
 
-        for image in image_list:
-            blink_image_process(image)
+            return blink_result_page_1 + ','.join(success_list) + blink_result_page_2 + ','.join(fail_list) + blink_result_page_3
 
-        for file in glob('./output/*'):
-            response = json.loads(image_upload(file))
-            if response['code'] != 0:
-                fail_list.append(file)
-            else:
-                success_list.append(b64encode(response['data']['image_url'].split(
-                    'http://i0.hdslb.com/bfs/album/')[1].split('.png')[0].encode()).decode())
+        else:
+            return render_template('empty_input.html')
 
-        return blink_result_page_1 + ','.join(success_list) + blink_result_page_2 + ','.join(fail_list) + blink_result_page_3
-    else:
-        return render_template('empty_input.html')
+    except Exception as e:
+        print(e)
+        return 'some files\' formats are not supported', 400
 
 
 @app.route('/blink/blink_image_out', methods=['POST'])
@@ -427,66 +428,41 @@ def blink_links_in():
         return render_template('blink.html')
 
 
-@app.route('/transcendence')
+@app.route('/transcendence', methods=['GET'])
 def transcendence():
     return render_template('transcendence.html')
 
 
 @app.route('/transcendence/process', methods=['POST'])
 def transcendence_process():
+
     clear_temp()
     clear_output()
-    files = request.files.getlist('file')
-    if str(files) != '''[<FileStorage: '' ('application/octet-stream')>]''':
-        for file in files:
-            file.save('./temporary/' + file.filename)
-            input_file = trans(file.filename)
-            if (input_file == True):
-                with open('./temporary/output.gif', 'rb')as output:
-                    data = output.read()
-                    b64 = b64encode(data).decode()
-                return transcendence_return % b64
-            else:
-                file = max(glob('./output/*.*'), key=os.path.getctime)
-                return send_file(file, as_attachment=True)
-    else:
-        return render_template('empty_input.html')
+    try:
+        files = request.files.getlist('file')
+        if str(files) != '''[<FileStorage: '' ('application/octet-stream')>]''':
+            for file in files:
+                file.save('./temporary/' + file.filename)
+                input_file = trans(file.filename)
+                if (input_file == True):
+                    with open('./temporary/output.gif', 'rb')as output:
+                        data = output.read()
+                        b64 = b64encode(data).decode()
+                    return transcendence_return % b64
+                else:
+                    file = max(glob('./output/*.*'), key=os.path.getctime)
+                    return send_file(file)
+        else:
+            return render_template('empty_input.html')
+    except Exception as e:
+        return 'please return the following part to auther or anyother member, thank you\n%s' % str(e)
 
 
-@app.route('/cluster')
+@app.route('/cluster', methods=['GET'])
 def cluster():
     return render_template('cluster.html')
 
 
-@app.route('/download_page')
-def download_page():
-    files = glob('./offline_apps/*.*')
-    files.sort(key=os.path.getctime)
-    data = ''
-    print(files)
-    for x in files:
-        data += '''<p>
-            <form action="/offline_apps_download" method="POST" enctype='multipart/form-data'>
-                <p>%s</p>
-                <input type="hidden" name=download_offline_app value="%s">
-                <input type="submit" value="下载">
-            </form>
-            </p>
-            <br>
-            ''' % (os.path.basename(x).split('.')[0], os.path.basename(x))
-    return offline_tool1+data+offline_tool2
-
-
-@app.route('/offline_apps_download', methods=["POST"])
-def offline_apps_download():
-    target = request.form.get('download_offline_app')
-    return send_file('./offline_apps/%s' % target, as_attachment=True)
-
-
-@app.route('/update')
-def update():
-    return doc_page1+update_log+doc_page2
-
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
+    # app.run(host='0.0.0.0', port=443,ssl_context=(r'C:\Certbot\live\blink-in.tk\fullchain.pem', r'C:\Certbot\live\blink-in.tk\privkey.pem'))
