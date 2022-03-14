@@ -1,6 +1,0 @@
-test name	192.168.1.166:
-test
-test name	192.168.1.166:
-test
-test name	192.168.1.166:
-test
